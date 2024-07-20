@@ -5,10 +5,11 @@ import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 from pickle import load
-from tensorflow.keras.losses import mean_squared_error
+from sklearn.metrics import mean_squared_error
 from tensorflow.keras.layers import GRU, Dense, Flatten, Conv1D, BatchNormalization, LeakyReLU, ELU, ReLU
 from tensorflow.keras import Sequential, regularizers
 from tensorflow.python.client import device_lib
+from tensorflow import keras
 
 # Load data
 X_train = np.load("X_train.npy", allow_pickle=True)
@@ -42,7 +43,7 @@ def Generator(input_dim, output_dim, feature_size) -> tf.keras.models.Model:
 # Define the discriminator
 def Discriminator() -> tf.keras.models.Model:
     model = tf.keras.Sequential()
-    model.add(Conv1D(32, input_shape=(4, 1), kernel_size=3, strides=2, padding="same", activation=LeakyReLU(alpha=0.01)))
+    model.add(Conv1D(32, input_shape=(17, 1), kernel_size=3, strides=2, padding="same", activation=LeakyReLU(alpha=0.01)))
     model.add(Conv1D(64, kernel_size=3, strides=2, padding="same", activation=LeakyReLU(alpha=0.01)))
     model.add(Conv1D(128, kernel_size=3, strides=2, padding="same", activation=LeakyReLU(alpha=0.01)))
     model.add(Flatten())
@@ -76,7 +77,7 @@ class GAN():
         and added to the discriminator loss.
         """
         # get the interpolated data
-        alpha = tf.random.normal([batch_size, 4, 1], 0.0, 1.0)
+        alpha = tf.random.normal([batch_size, 17, 1], 0.0, 1.0)
         diff = fake_output - tf.cast(real_output, tf.float32)
         interpolated = tf.cast(real_output, tf.float32) + alpha * diff
 
@@ -166,8 +167,10 @@ class GAN():
             Real_price.append(real_price)
 
             # Save the model every 15 epochs
-            if (epoch + 1) % 15 == 0:
-                tf.keras.models.save_model(generator, 'gen_GRU_model_%d.h5' % epoch)
+            if (epoch + 1) % 90 == 0:
+                tf.keras.models.save_model(generator, 'WGAN_google.keras')
+                # model.save('my_model.keras')
+                # keras.saving.save_model(generator, 'gen_GRU_model_%d.keras' % epoch)
                 self.checkpoint.save(file_prefix=self.checkpoint_prefix)
                 print('epoch', epoch+1, 'd_loss', loss['d_loss'].numpy(), 'g_loss', loss['g_loss'].numpy())
 
@@ -218,6 +221,64 @@ X_scaler = load(open('X_scaler.pkl', 'rb'))
 y_scaler = load(open('y_scaler.pkl', 'rb'))
 train_predict_index = np.load("index_train.npy", allow_pickle=True)
 test_predict_index = np.load("index_test.npy", allow_pickle=True)
+G_model = tf.keras.models.load_model('WGAN_google.keras')
+# G_model = tf.keras.models.load_model('gen_model_3_1_164.keras')
+X_test = np.load("X_test.npy", allow_pickle=True)
+y_test = np.load("y_test.npy", allow_pickle=True)
+
+def get_test_plot(X_test, y_test):
+    # Set output steps
+    output_dim = y_test.shape[1]
+
+    # Get predicted data
+    y_predicted = G_model(X_test)
+    y_train_predicted = G_model(X_train)
+    rescaled_real_y = y_scaler.inverse_transform(y_test)
+    rescaled_predicted_y = y_scaler.inverse_transform(y_predicted)
+
+    ## Predicted price
+    predict_result = pd.DataFrame()
+    for i in range(rescaled_predicted_y.shape[0]):
+        y_predict = pd.DataFrame(rescaled_predicted_y[i], columns=["predicted_price"],
+                                 index=test_predict_index[i:i + output_dim])
+        predict_result = pd.concat([predict_result, y_predict], axis=1, sort=False)
+
+    ## Real price
+    real_price = pd.DataFrame()
+    for i in range(rescaled_real_y.shape[0]):
+        y_train = pd.DataFrame(rescaled_real_y[i], columns=["real_price"], index=test_predict_index[i:i + output_dim])
+        real_price = pd.concat([real_price, y_train], axis=1, sort=False)
+
+    predict_result['predicted_mean'] = predict_result.mean(axis=1)
+    real_price['real_mean'] = real_price.mean(axis=1)
+
+    #drop 2020
+    # Input_Before = '2020-01-01'
+    # predict_result = predict_result.loc[predict_result.index < Input_Before]
+    # real_price = real_price.loc[real_price.index < Input_Before]
+
+    # Plot the predicted result
+    # plt.figure(figsize=(16, 8))
+    # plt.plot(real_price["real_mean"])
+    # plt.plot(predict_result["predicted_mean"], color='r')
+    # plt.xlabel("Date")
+    # plt.ylabel("Stock price")
+    # plt.legend(("Real price", "Predicted price"), loc="upper left", fontsize=16)
+    # plt.title("The result of test", fontsize=20)
+    # plt.show()
+    # plt.savefig('test_plot.png')
+    # # Calculate RMSE
+    # predicted = predict_result["predicted_mean"]
+    # real = real_price["real_mean"]
+    # For_MSE = pd.concat([predicted, real], axis=1)
+    # RMSE = np.sqrt(mean_squared_error(predicted, real))
+    # print('-- RMSE -- ', RMSE)
+
+    # MAPE = np.mean(np.abs((real - predicted) / real)) * 100
+    # print('-- MAPE -- ', MAPE)
+    return predict_result['predicted_mean'], real_price['real_mean']
+
+test_predicted, test_real = get_test_plot(X_test, y_test)
 
 print("----- predicted price -----", Predicted_price)
 
@@ -239,11 +300,12 @@ for i in range(rescaled_Real_price.shape[0]):
 
 predict_result['predicted_mean'] = predict_result.mean(axis=1)
 real_price['real_mean'] = real_price.mean(axis=1)
-
+predict_final = pd.concat([test_predicted, predict_result['predicted_mean']], axis=0)
+real_final = pd.concat([test_real, real_price['real_mean']], axis=0)
 # Plot the predicted result
 plt.figure(figsize=(16, 8))
-plt.plot(real_price["real_mean"])
-plt.plot(predict_result["predicted_mean"], color = 'r')
+plt.plot(real_final)
+plt.plot(predict_final, color = 'r')
 plt.xlabel("Date")
 plt.ylabel("Stock price")
 plt.legend(("Real price", "Predicted price"), loc="upper left", fontsize=16)
@@ -257,3 +319,4 @@ real = real_price["real_mean"]
 For_MSE = pd.concat([predicted, real], axis = 1)
 RMSE = np.sqrt(mean_squared_error(predicted, real))
 print('-- RMSE -- ', RMSE)
+

@@ -58,8 +58,8 @@ class GAN:
         self.generator = generator
         self.discriminator = discriminator
         self.cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-        self.generator_optimizer = tf.keras.optimizers.Adam(lr=self.lr)
-        self.discriminator_optimizer = tf.keras.optimizers.Adam(lr=self.lr)
+        self.generator_optimizer = tf.keras.optimizers.Adam(0.0001)
+        self.discriminator_optimizer = tf.keras.optimizers.Adam(0.0001)
         self.batch_size = self.opt['bs']
         self.checkpoint_dir = '../training_checkpoints'
         self.checkpoint_prefix = os.path.join(self.checkpoint_dir, "ckpt")
@@ -130,8 +130,8 @@ class GAN:
             Real_price.append(real_price.numpy())
 
             # Save the model every 15 epochs
-            if (epoch + 1) % 15 == 0:
-                tf.keras.models.save_model(generator, 'gen_model_3_1_%d.h5' % epoch)
+            if (epoch + 1) % 90 == 0:
+                tf.keras.models.save_model(generator, 'gen_model_3_1_%d.keras' % epoch)
                 self.checkpoint.save(file_prefix=self.checkpoint_prefix + f'-{epoch}')
                 print('epoch', epoch + 1, 'd_loss', loss['d_loss'].numpy(), 'g_loss', loss['g_loss'].numpy())
             # print('Time for epoch {} is {} sec'.format(epoch + 1, time.time() - start))
@@ -177,8 +177,8 @@ if __name__ == '__main__':
 # Rescale back the real dataset
 X_scaler = load(open('X_scaler.pkl', 'rb'))
 y_scaler = load(open('y_scaler.pkl', 'rb'))
-train_predict_index = np.load("train_predict_index.npy", allow_pickle=True)
-test_predict_index = np.load("test_predict_index.npy", allow_pickle=True)
+train_predict_index = np.load("index_train.npy", allow_pickle=True)
+test_predict_index = np.load("index_test.npy", allow_pickle=True)
 #dataset_train = pd.read_csv('dataset_train.csv', index_col=0)
 
 

@@ -7,7 +7,8 @@ from matplotlib.dates import DateFormatter
 import math
 
 ## import data
-df = pd.read_csv('DATA.csv', parse_dates=['Date'])
+df = pd.read_csv('Google_final.csv', parse_dates=['Date'])
+# df = df.iloc[:, :-7]
 print(df.head())
 print(df.tail())
 print(df.shape)
