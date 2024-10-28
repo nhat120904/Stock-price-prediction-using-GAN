@@ -36,7 +36,7 @@ def make_generator_model(input_dim, output_dim, feature_size) -> tf.keras.models
 def make_discriminator_model():
 
     cnn_net = tf.keras.Sequential()
-    cnn_net.add(Conv1D(32, input_shape=(4, 1), kernel_size=3, strides=2, padding='same', activation=LeakyReLU(alpha=0.01)))
+    cnn_net.add(Conv1D(32, input_shape=(17, 1), kernel_size=3, strides=2, padding='same', activation=LeakyReLU(alpha=0.01)))
     cnn_net.add(Conv1D(64, kernel_size=5, strides=2, padding='same', activation=LeakyReLU(alpha=0.01)))
     cnn_net.add(Conv1D(128, kernel_size=5, strides=2, padding='same', activation=LeakyReLU(alpha=0.01)))
     cnn_net.add(Flatten())
@@ -58,8 +58,8 @@ class GAN:
         self.generator = generator
         self.discriminator = discriminator
         self.cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-        self.generator_optimizer = tf.keras.optimizers.Adam(lr=self.lr)
-        self.discriminator_optimizer = tf.keras.optimizers.Adam(lr=self.lr)
+        self.generator_optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr)
+        self.discriminator_optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr)
         self.batch_size = self.opt['bs']
         self.checkpoint_dir = '../training_checkpoints'
         self.checkpoint_prefix = os.path.join(self.checkpoint_dir, "ckpt")
@@ -177,8 +177,8 @@ if __name__ == '__main__':
 # Rescale back the real dataset
 X_scaler = load(open('X_scaler.pkl', 'rb'))
 y_scaler = load(open('y_scaler.pkl', 'rb'))
-train_predict_index = np.load("train_predict_index.npy", allow_pickle=True)
-test_predict_index = np.load("test_predict_index.npy", allow_pickle=True)
+train_predict_index = np.load("index_train.npy", allow_pickle=True)
+test_predict_index = np.load("index_test.npy", allow_pickle=True)
 #dataset_train = pd.read_csv('dataset_train.csv', index_col=0)
 
 

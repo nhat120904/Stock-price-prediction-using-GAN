@@ -20,8 +20,9 @@ news = pd.read_csv("News.csv", parse_dates=["Date"])
 # Replace 0 by NA
 dataset.replace(0, np.nan, inplace=True)
 dataset.to_csv("dataset.csv", index=False)
+
 # Add News data
-dataset["News"] = news["Score"]
+# dataset["News"] = news["Score"]
 
 # Check NA and fill them
 dataset.isnull().sum()
@@ -34,6 +35,11 @@ datetime_index = pd.DatetimeIndex(datetime_series.values)
 dataset = dataset.set_index(datetime_index)
 dataset = dataset.sort_values(by='Date')
 dataset = dataset.drop(columns='Date')
+
+#raw
+dataset = dataset.iloc[:, :5]
+#graph
+# dataset = dataset.iloc[:, :12]
 
 # Get features and target
 X_value = pd.DataFrame(dataset.iloc[:, :])
@@ -59,9 +65,9 @@ dump(y_scaler, open('y_scaler.pkl', 'wb'))
 '''Set the data input steps and output steps, 
     we use 30 days data to predict 1 day price here, 
     reshape it to (None, input_step, number of features) used for LSTM input'''
-n_steps_in = 3
+n_steps_in = 16
 n_features = X_value.shape[1]
-n_steps_out = 1
+n_steps_out = 5
 
 # Get X/y dataset
 def get_X_y(X_data, y_data):
@@ -74,7 +80,7 @@ def get_X_y(X_data, y_data):
         X_value = X_data[i: i + n_steps_in][:, :]
         y_value = y_data[i + n_steps_in: i + (n_steps_in + n_steps_out)][:, 0]
         yc_value = y_data[i: i + n_steps_in][:, :]
-        if len(X_value) == 3 and len(y_value) == 1:
+        if len(X_value) == 16 and len(y_value) == 5:
             X.append(X_value)
             y.append(y_value)
             yc.append(yc_value)
@@ -92,9 +98,13 @@ def predict_index(dataset, X_train, n_steps_in, n_steps_out):
 
 # Split train/test dataset
 def split_train_test(data):
-    train_size = round(len(X) * 0.7)
-    data_train = data[0:train_size]
-    data_test = data[train_size:]
+    # Ensure data is a NumPy array
+    # data = np.array(data)  # This will convert data to a NumPy array if it's not already
+    train_size = round(len(data) * 0.8)  # Use len(data) instead of len(X)
+    # print("len: ", len(data))
+    # print("check: ", train_size)
+    data_train = data[0:int(train_size)]
+    data_test = data[int(train_size):]
     return data_train, data_test
 
 # Get data and check shape

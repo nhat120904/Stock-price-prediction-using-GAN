@@ -15,9 +15,14 @@ train_predict_index = np.load("index_train.npy", allow_pickle=True)
 test_predict_index = np.load("index_test.npy", allow_pickle=True)
 
 # Load test dataset/ model
+# G_model = tf.keras.models.load_model('gen_model_3_1_164.h5')
 G_model = tf.keras.models.load_model('gen_GRU_model_89.h5')
 X_test = np.load("X_test.npy", allow_pickle=True)
 y_test = np.load("y_test.npy", allow_pickle=True)
+
+def calculate_mape(y_true, y_pred):
+    y_true, y_pred = np.array(y_true), np.array(y_pred)
+    return np.mean(np.abs((y_true - y_pred) / y_true)) * 100
 
 
 def get_test_plot(X_test, y_test):
@@ -67,8 +72,11 @@ def get_test_plot(X_test, y_test):
     RMSE = np.sqrt(mean_squared_error(predicted, real))
     print('-- RMSE -- ', RMSE)
 
-    return predict_result, RMSE
+    # Calculate MAPE
+    MAPE = calculate_mape(real, predicted)
+    print('-- MAPE -- ', MAPE)
 
+    return predict_result, RMSE
 
 test_predicted, test_RMSE = get_test_plot(X_test, y_test)
 test_predicted.to_csv("test_predicted.csv")
